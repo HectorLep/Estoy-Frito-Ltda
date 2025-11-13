@@ -15,8 +15,8 @@ MQTT_USERNAME = "subscriber"
 MQTT_PASSWORD = "sub123"
 NODERED_URL = "http://localhost:1880/sensor_data_mqtt"
 
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
         print("✓ Conectado al broker MQTT")
         client.subscribe(MQTT_TOPIC, qos=1)
         print(f"✓ Suscrito al tópico: {MQTT_TOPIC}")
@@ -26,21 +26,31 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         print(f"\n✓ Mensaje recibido del tópico '{msg.topic}'")
         print(f"  Temp: {payload['dUMA']['environment']['temperature']}°C")
-        response = requests.post(NODERED_URL, json=payload, headers={"Content-Type": "application/json"}, timeout=5)
+        
+        # Reenviar a NodeRed
+        response = requests.post(NODERED_URL, json=payload, 
+                                headers={"Content-Type": "application/json"}, timeout=5)
+        
         if response.status_code == 200:
             print(f"  → Reenviado a NodeRed exitosamente")
     except Exception as e:
         print(f"✗ Error: {e}")
 
 if __name__ == "__main__":
-    client = mqtt.Client("Subscriber_SensorData")
+    # Crear cliente MQTT con callback API version
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "Subscriber_SensorData")
+    
+    # Configurar credenciales
     client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    
+    # Configurar callbacks
     client.on_connect = on_connect
     client.on_message = on_message
     
     print("=" * 60)
     print("MQTT Subscriber - Escuchando tópico 'sensores'")
     print("=" * 60)
+    
     try:
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
         client.loop_forever()
