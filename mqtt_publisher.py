@@ -1,64 +1,54 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Script Publisher MQTT - Publica datos en el tópico 'sensores'
-"""
-
 import paho.mqtt.client as mqtt
 import json
 import time
 from generate_json import generate_sensor_data
+from datetime import datetime
 
 MQTT_BROKER = "localhost"
 MQTT_PORT = 1883
 MQTT_TOPIC = "sensores"
 MQTT_USERNAME = "publisher"
 MQTT_PASSWORD = "pub123"
-INTERVAL_SECONDS = 5
 
-def on_connect(client, userdata, flags, reason_code, properties):
-    if reason_code == 0:
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
         print("✓ Conectado al broker MQTT exitosamente")
     else:
-        print(f"✗ Error de conexión. Código: {reason_code}")
+        print(f"✗ Error de conexión. Código: {rc}")
 
-def on_publish(client, userdata, mid, reason_code, properties):
+def on_publish(client, userdata, mid):
     print(f"✓ Mensaje publicado (ID: {mid})")
 
-if __name__ == "__main__":
-    # Crear cliente MQTT con callback API version
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, "Publisher_SensorData")
-    
-    # Configurar credenciales
-    client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-    
-    # Configurar callbacks
-    client.on_connect = on_connect
-    client.on_publish = on_publish
+client = mqtt.Client()
+client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+client.on_connect = on_connect
+client.on_publish = on_publish
+
+try:
+    client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    client.loop_start()
     
     print("=" * 60)
-    print("MQTT Publisher - Publicando en tópico 'sensores'")
+    print(f"MQTT Publisher - Publicando en tópico '{MQTT_TOPIC}'")
     print(f"Broker: {MQTT_BROKER}:{MQTT_PORT}")
     print("=" * 60)
     
-    try:
-        # Conectar al broker
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        client.loop_start()
+    while True:
+        sensor_data = generate_sensor_data()
+        message = json.dumps(sensor_data)
         
-        while True:
-            # Generar datos aleatorios
-            sensor_data = generate_sensor_data()
-            json_payload = json.dumps(sensor_data, ensure_ascii=False)
-            
-            print(f"\n[{sensor_data['dUMA']['timestamp']}]")
-            print(f"  Temp: {sensor_data['dUMA']['environment']['temperature']}°C")
-            
-            # Publicar mensaje
-            client.publish(MQTT_TOPIC, json_payload, qos=1)
-            time.sleep(INTERVAL_SECONDS)
-            
-    except KeyboardInterrupt:
-        print("\n\n✓ Publisher detenido")
-        client.loop_stop()
-        client.disconnect()
+        result = client.publish(MQTT_TOPIC, message)
+        
+        print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]")
+        print(f"  Temp: {sensor_data['dUMA']['environment']['temperature']}°C, Humedad: {sensor_data['dUMA']['environment']['humidity']}%, IAQ: {sensor_data['dUMA']['air_quality']['iaq_index']}")
+        
+        time.sleep(5)
+        
+except KeyboardInterrupt:
+    print("\n\nPublicador detenido por el usuario")
+    client.loop_stop()
+    client.disconnect()
+except Exception as e:
+    print(f"\n✗ Error: {e}")
+    client.loop_stop()
+    client.disconnect()
