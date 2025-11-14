@@ -1,51 +1,38 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Script para enviar datos JSON a NodeRed vía HTTP POST
-"""
-
 import requests
-import json
 import time
 from generate_json import generate_sensor_data
+from datetime import datetime
 
-# Configuración de NodeRed
 NODERED_URL = "http://localhost:1880/sensor_data"
-INTERVAL_SECONDS = 5
 
-def send_to_nodered(data):
-    try:
+print("=" * 60)
+print("Enviando datos a NodeRed vía HTTP POST")
+print(f"URL: {NODERED_URL}")
+print("=" * 60)
+print("Presiona Ctrl+C para detener\n")
+
+try:
+    while True:
+        sensor_data = generate_sensor_data()
+        
         response = requests.post(
             NODERED_URL,
-            json=data,
-            headers={"Content-Type": "application/json"},
-            timeout=5
+            json=sensor_data,
+            headers={'Content-Type': 'application/json'}
         )
         
         if response.status_code == 200:
-            print(f"✓ Datos enviados exitosamente a NodeRed")
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✓ Datos enviados exitosamente")
+            print(f"  Temp: {sensor_data['dUMA']['environment']['temperature']}°C")
+            print(f"  Humidity: {sensor_data['dUMA']['environment']['humidity']}%")
+            print(f"  IAQ: {sensor_data['dUMA']['air_quality']['iaq_index']}")
+            print(f"  PM 2.5: {sensor_data['dUMA']['air_quality']['pm25']} μg/m³")
         else:
-            print(f"✗ Error al enviar a NodeRed: {response.status_code}")
-            
-    except requests.exceptions.RequestException as e:
-        print(f"✗ Error de conexión con NodeRed: {e}")
-
-if __name__ == "__main__":
-    print("=" * 60)
-    print("Enviando datos a NodeRed vía HTTP POST")
-    print(f"URL: {NODERED_URL}")
-    print("=" * 60)
-    print("Presiona Ctrl+C para detener\n")
-    
-    try:
-        while True:
-            sensor_data = generate_sensor_data()
-            print(f"\n[{sensor_data['dUMA']['timestamp']}]")
-            print(f"  Temp: {sensor_data['dUMA']['environment']['temperature']}°C, "
-                  f"Humedad: {sensor_data['dUMA']['environment']['humidity']}%, "
-                  f"IAQ: {sensor_data['dUMA']['air_quality']['iaq_index']}")
-            send_to_nodered(sensor_data)
-            time.sleep(INTERVAL_SECONDS)
-            
-    except KeyboardInterrupt:
-        print("\n\n✓ Envío detenido por el usuario")
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ✗ Error: {response.status_code}")
+        
+        time.sleep(5)
+        
+except KeyboardInterrupt:
+    print("\n\nEnvío detenido por el usuario")
+except Exception as e:
+    print(f"\n✗ Error: {e}")
