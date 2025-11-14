@@ -1,50 +1,35 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Script para generar JSON con datos aleatorios de sensores ambientales
-Proyecto #3 Interfaces Gráficas - INFO1128
-Estoy Frito Ltda
-"""
-
-import random
-import json
-from datetime import datetime
+import numpy as np
 
 def generate_sensor_data():
     """
-    Genera un objeto JSON dUMA con datos aleatorios de sensores
+    Genera datos de sensores ambientales simulados
+    Retorna un diccionario con estructura JSON completa
     """
-    data = {
-        "dUMA": {
-            "timestamp": datetime.now().isoformat(),
-            "air_quality": {
-                "iaq_index": random.randint(0, 250),
-                "quality_label": random.choice(["good", "moderate", "poor", "unhealthy"]),
-                "accuracy": random.randint(0, 3)
+    return {
+        'dUMA': {
+            'environment': {
+                'temperature': round(np.random.normal(20, 2, 1)[0], 2),
+                'humidity': round(np.random.normal(70, 2, 1)[0], 2),
+                'air_pressure': round(np.random.normal(900, 10, 1)[0], 2)
             },
-            "environment": {
-                "temperature": round(random.uniform(15.0, 30.0), 2),
-                "humidity": round(random.uniform(25.0, 70.0), 2),
-                "air_pressure": round(random.uniform(950.0, 1050.0), 2)
+            'air_quality': {
+                'iaq_index': int(np.random.normal(20, 2, 1)[0]),
+                'pm1': round(np.random.normal(30, 2, 1)[0], 2),
+                'pm25': round(np.random.normal(30, 2, 1)[0], 2),
+                'pm10': round(np.random.normal(30, 2, 1)[0], 2)
             },
-            "stats": {
-                "memory_usage_percent": random.randint(10, 90),
-                "cpu_usage_percent": random.randint(10, 90),
-                "logins": random.randint(0, 500),
-                "server_requests": random.randint(100, 10000),
-                "sign_ups": random.randint(0, 500),
-                "logouts": random.randint(0, 300),
-                "sign_outs": random.randint(0, 400)
-            },
-            "disk_usage": [
-                {"partition": f"sda{i}", "usage_gb": random.randint(1, 100)}
-                for i in range(1, 17)
-            ]
+            'particle_histogram': {
+                'h03': int(np.random.normal(1000, 10, 1)[0]),
+                'h05': int(np.random.normal(1000, 10, 1)[0]),
+                'h01': int(np.random.normal(1000, 10, 1)[0]),
+                'h25': int(np.random.normal(1000, 10, 1)[0]),
+                'h50': int(np.random.normal(1000, 10, 1)[0]),
+                'h10': int(np.random.normal(1000, 10, 1)[0])
+            }
         }
     }
-    return data
 
-if __name__ == "__main__":
-    # Generar y mostrar JSON
-    sensor_data = generate_sensor_data()
-    print(json.dumps(sensor_data, indent=2, ensure_ascii=False))
+if __name__ == '__main__':
+    import json
+    data = generate_sensor_data()
+    print(json.dumps(data, indent=2))
